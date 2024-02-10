@@ -1,4 +1,4 @@
-from api import EFT_Items
+from eft_items import EFT_Items
 from Screen_Capture import WindowCapture
 from overlay import Overlay
 
@@ -35,63 +35,59 @@ def template_matching(image, template, threshold=0.8):
     points = zip(*loc[::-1])
     return points
 
-def draw_rect(root, x,y,w,h, thickness=2):
-    f = tk.Frame(root, width=w, height=h, bg='green')
-    f.place(x=x, y = y)
-    f = tk.Frame(root, width=w-2*thickness, height=h-2*thickness, bg="#fffffe")
-    f.place(x=x+thickness, y=y+thickness)
-
 def main():
-    ITEM_PIXEL_SIZE = 80
-
-    eft_items_grid_icons_directory = '../grid_icons/'
-    eft_items = EFT_Items(eft_items_grid_icons_directory)
+    ITEM_SLOT_PIXEL_SIZE = 80 # all values w.r.t 3440x1440
+    CAPTCHA_WINDOW_X = 1490
+    CAPTCHA_WINDOW_WIDTH = 460
+    CAPTCHA_TITLE_HEIGHT = 50
+    CAPTCHA_ITEM_HEIGHT = 32
+    CAPTCHA_ITEM_CERTAINTY = 0.7
+    ITEM_SIZE = (80,80) # TODO: depending on nr of slots
 
     window_name = 'EscapeFromTarkov'
+    # window_name = 'Windows-Fotoanzeige'
     screenshot_taker = WindowCapture(window_name)
-    screenshot = screenshot_taker.take_screenshot()
 
-    # search captcha window
-    image = cv2.imread("./screenshots/captcha_title.png")
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    captcha_title_image = image.copy()
-    points = template_matching(screenshot, captcha_title_image, threshold=0.8)
-    points = non_maximum_suppression_points(points, 80)
-    point = points[0]
-
-    x = 1490
-    y = point[1]+50
-    w = 460
-    h = 32
-    captcha_item_image = screenshot[y:y+h, x:x+w]
-    captcha_item_text = pytesseract.image_to_string(captcha_item_image)[:-1]
-    print(captcha_item_text)
-
-
-    captcha_item_name = captcha_item_text
-    captcha_item_image = eft_items.get_image_from_item_name(captcha_item_name)
-    captcha_item_image = captcha_item_image[15:,]
-
-    cv2.imshow("image", captcha_item_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    # template matching
-    # TODO: x component offset bc width of window is too big
-    points = template_matching(screenshot, captcha_item_image, threshold=0.6)
-    points = non_maximum_suppression_points(points, ITEM_PIXEL_SIZE)
-
-    # show points as tkinter overlay
+    # create the tkinter overlay
     overlay = Overlay(screenshot_taker.WINDOW_TOPLEFT, screenshot_taker.WINDOW_SIZE)
     root = overlay.create_overlay()
 
-    # drawing rectangle
-    draw_rect(root, point[0], point[1], 460, 50)
-    draw_rect(root, x, y, w, h)
+    # load reference image to find captcha
+    captcha_title_image = cv2.imread("./screenshots/captcha_title.png")
+    captcha_title_image = cv2.cvtColor(captcha_title_image, cv2.COLOR_BGR2RGB)
 
-    for point in points:
-        draw_rect(root, point[0], point[1], 80, 80)
+    # load tarkov item information and icons
+    eft_items_grid_icons_directory = './grid_icons/'
+    eft_items = EFT_Items(eft_items_grid_icons_directory)
 
+    # locate captcha window and item name
+    screenshot = screenshot_taker.take_screenshot()
+    points = template_matching(screenshot, captcha_title_image, threshold=0.8)
+    points = non_maximum_suppression_points(points, ITEM_SLOT_PIXEL_SIZE)
+    # TODO: assert point found
+    if len(points) > 1:
+        print(f"WARNING: there is multiple locations for the captcha window!\n"
+              f"         {points=}\n"
+              f"         Using the first point.")
+    point = points[0]
+
+    captcha_item_y = point[1]+CAPTCHA_TITLE_HEIGHT
+    captcha_item_image = screenshot[captcha_item_y:captcha_item_y+CAPTCHA_ITEM_HEIGHT
+                                    , CAPTCHA_WINDOW_X:CAPTCHA_WINDOW_X+CAPTCHA_WINDOW_WIDTH]
+    captcha_item_name = pytesseract.image_to_string(captcha_item_image)[:-1] # remove trailing '\n'
+    print(f"Captcha item name: {captcha_item_name}")
+
+    captcha_item_image = eft_items.get_image_from_item_name(captcha_item_name)
+    captcha_item_image = captcha_item_image[15:,] # remove top item label 
+
+    # find captcha item locations
+    # TODO: x component offset bc width of window is too big
+    item_locations = template_matching(screenshot, captcha_item_image, threshold=CAPTCHA_ITEM_CERTAINTY)
+    item_locations = non_maximum_suppression_points(item_locations, ITEM_SLOT_PIXEL_SIZE)
+    for point in item_locations:
+        overlay.draw_rectangle(point, ITEM_SIZE)
+
+    # start the tkinter loop
     root.mainloop()
 
 if __name__ == '__main__':

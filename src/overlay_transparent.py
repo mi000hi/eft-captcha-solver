@@ -11,6 +11,8 @@ class OverlayTransparent:
         self.TRANSPARENT_COLOR = transparent_color
         self.BORDER_THICKNESS = border_thickness
 
+        self.rectangles = []
+
     def create_overlay(self):
         self.root = tk.Tk()
         self.root.title("tkinter overlay")
@@ -28,3 +30,11 @@ class OverlayTransparent:
         self.transparent_frame.place(x=self.BORDER_THICKNESS,y=self.BORDER_THICKNESS)
 
         return self.root
+    
+    def draw_rectangle(self, topleft:tuple, size:tuple, thickness:int=2, color:tuple="#ffffff"):
+        rectangle = tk.Frame(self.root, width=size[0], height=size[1], bg=color)
+        rectangle.place(x=topleft[0], y=topleft[1])
+        self.rectangles.append(rectangle)
+        rectangle = tk.Frame(self.root, width=size[0]-2*thickness, height=size[1]-2*thickness, bg=self.TRANSPARENT_COLOR)
+        rectangle.place(x=topleft[0]+thickness, y=topleft[1]+thickness)
+        self.rectangles.append(rectangle)
