@@ -42,7 +42,10 @@ def main():
     CAPTCHA_TITLE_HEIGHT = 50
     CAPTCHA_ITEM_HEIGHT = 32
     CAPTCHA_ITEM_CERTAINTY = 0.7
-    ITEM_SIZE = (80,80) # TODO: depending on nr of slots
+    ITEM_SLOT_FHD = 64
+    ITEM_SIZE_MULTIPLIER = 1.25
+    ITEM_SLOT = ITEM_SLOT_FHD * ITEM_SIZE_MULTIPLIER
+    
 
     window_name = 'EscapeFromTarkov'
     # window_name = 'Windows-Fotoanzeige'
@@ -77,6 +80,7 @@ def main():
     captcha_item_name = pytesseract.image_to_string(captcha_item_image)[:-1] # remove trailing '\n'
     print(f"Captcha item name: {captcha_item_name}")
 
+    captcha_item = eft_items.get('name', captcha_item_name)
     captcha_item_image = eft_items.get_image_from_item_name(captcha_item_name)
     captcha_item_image = captcha_item_image[15:,] # remove top item label 
 
@@ -84,6 +88,7 @@ def main():
     # TODO: x component offset bc width of window is too big
     item_locations = template_matching(screenshot, captcha_item_image, threshold=CAPTCHA_ITEM_CERTAINTY)
     item_locations = non_maximum_suppression_points(item_locations, ITEM_SLOT_PIXEL_SIZE)
+    ITEM_SIZE = (int(ITEM_SLOT*captcha_item['width']), int(ITEM_SLOT*captcha_item['height']))
     for point in item_locations:
         overlay.draw_rectangle(point, ITEM_SIZE)
 
