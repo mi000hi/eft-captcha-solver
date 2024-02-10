@@ -3,13 +3,15 @@ import tkinter as tk
 class OverlayTransparent:
 
     def __init__(self, overlay_position:tuple, overlay_size:tuple, transparent_color:str="#fffffe"
-                 , border_thickness:int=3):
+                 , border_thickness:int=3, update_period_in_ms:int=1000):
         self.POSITION = overlay_position
         self.SIZE = overlay_size
         self.WIDTH, self.HEIGHT = overlay_size
 
         self.TRANSPARENT_COLOR = transparent_color
         self.BORDER_THICKNESS = border_thickness
+
+        self.UPDATE_PERIOD_IN_MS = update_period_in_ms
 
         self.rectangles = []
 
@@ -38,3 +40,12 @@ class OverlayTransparent:
         rectangle = tk.Frame(self.root, width=size[0]-2*thickness, height=size[1]-2*thickness, bg=self.TRANSPARENT_COLOR)
         rectangle.place(x=topleft[0]+thickness, y=topleft[1]+thickness)
         self.rectangles.append(rectangle)
+
+    def remove_rectangles(self):
+        for rectangle in self.rectangles:
+            rectangle.destroy()
+        self.rectangles = []
+
+    def start_update(self, function):
+        function()
+        self.root.after(self.UPDATE_PERIOD_IN_MS, self.start_update, function)

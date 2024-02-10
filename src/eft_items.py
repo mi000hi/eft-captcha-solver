@@ -6,6 +6,7 @@ import numpy as np
 import requests
 import shutil
 import os
+import re
 
 from icecream import ic
 from tqdm.auto import tqdm
@@ -128,17 +129,30 @@ class EFT_Items:
             with open(filepath,'wb') as f:
                 shutil.copyfileobj(r.raw, f)
                 
-    def get_image_from_item_name(self, item_name:str):
-        item_df_index = self.all_items_df[self.all_items_df['name'] == item_name].index[0]
+    def get_image_from_item_name(self, item_name:str, exact_match:bool=True):
+        item_name = re.escape(item_name)
+        item_df_index = None
+        if exact_match:
+            item_df_index = self.all_items_df[self.all_items_df['name'] == item_name].index[0]
+        else:
+            item_df_index = self.all_items_df[self.all_items_df['name'].str.contains(item_name)].index[0]
+        
         icon_image = self.icons[item_df_index]
         return icon_image
 
-    def get(self, identifier:str, key):
-        matching_items = self.all_items_df[self.all_items_df[identifier] == key]
+    def get(self, identifier:str, key, exact_match:bool=True, verbose:bool=True):
+        key = re.escape(key)
+        matching_items = None
+        if exact_match:
+            matching_items = self.all_items_df[self.all_items_df[identifier] == key]
+        else:
+            matching_items = self.all_items_df[self.all_items_df[identifier].str.contains(key)]
+        
         if len(matching_items) == 0:
-            print(f"ERROR: Item not found. Searched under '{identifier}' with key '{key}'.")
+            if verbose:
+                print(f"ERROR: Item not found. Searched under '{identifier}' with key '{key}'.")
             return None
-        if len(matching_items) > 1:
+        if verbose and len(matching_items) > 1:
             print(f"WARNING: Multiple matching items found:\n"
                   f"         {matching_items}"
                   f"         Using first item.")
