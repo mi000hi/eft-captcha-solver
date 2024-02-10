@@ -78,7 +78,7 @@ class EFT_Items:
             else:
                 # width_in_slots = item.loc['width']
                 # height_in_slots = item.loc['height']
-                icon_bgr = cv2.imread(filename, cv2.COLOR_BGR2RGB)
+                icon_bgr = cv2.imread(filename)
                 icon_rgb = cv2.cvtColor(icon_bgr, cv2.COLOR_BGR2RGB)
                 # icon = scale_image(icon, width=(int) (width_in_slots*slot_size)
                 #         , height=(int) (height_in_slots*slot_size))

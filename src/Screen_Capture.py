@@ -19,8 +19,8 @@ class WindowCapture(ScreenCapture):
         windows = pygetwindow.getWindowsWithTitle(self.WINDOW_TITLE)
         assert len(windows) > 0, f"There is no window matching the given title({self.WINDOW_TITLE})"
         if len(windows) > 1:
-            print(f"WARNING: There is {len(windows)} windows matching the given title({self.WINDOW_TITLE}).\n"
-                  f"         {windows=}\n"
+            print(f"WARNING: There is {len(windows)} windows matching the given title({self.WINDOW_TITLE}).")
+            print(f"         windows={[w.title for w in windows]}\n"
                   f"         The first window is selected.")
 
         self.WINDOW = windows[0]

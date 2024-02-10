@@ -1,0 +1,1 @@
+for OCR, you need to install tesseract! https://github.com/tesseract-ocr/tesseract
