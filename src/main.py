@@ -1,5 +1,5 @@
 from eft_items import EFT_Items
-from Screen_Capture import WindowCapture
+from screen_capture import WindowCapture
 from overlay import Overlay
 
 import pyautogui
