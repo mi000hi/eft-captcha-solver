@@ -18,21 +18,26 @@ ITEM_SLOT_FHD = 64
 ITEM_SIZE_MULTIPLIER = 1.25
 ITEM_SLOT = ITEM_SLOT_FHD * ITEM_SIZE_MULTIPLIER
 
-UPDATE_PERIOD_IN_MS = 1000
+UPDATE_PERIOD_IN_MENU_IN_MS = 100
+UPDATE_PERIOD_IN_RAID_IN_MS = 10*1000
+update_period_in_ms = UPDATE_PERIOD_IN_MENU_IN_MS
 captcha_was_active = False
+menu_was_active = False
 
 
 WINDOW_NAME = 'EscapeFromTarkov'
-WINDOW_NAME = 'screenshots'
+# WINDOW_NAME = 'screenshots'
 screenshot_taker = WindowCapture(WINDOW_NAME)
 
 # create the tkinter overlay
 overlay = Overlay(screenshot_taker.WINDOW_TOPLEFT, screenshot_taker.WINDOW_SIZE
-                    , update_period_in_ms=UPDATE_PERIOD_IN_MS)
+                    , update_period_in_ms=update_period_in_ms)
 
-# load reference image to find captcha
+# load reference images to find windows
 captcha_title_image = cv2.imread("./screenshots/captcha_title.png")
 captcha_title_image = cv2.cvtColor(captcha_title_image, cv2.COLOR_BGR2RGB)
+tarkov_menu_image = cv2.imread("./screenshots/tarkov_menu.png")
+tarkov_menu_image = cv2.cvtColor(tarkov_menu_image, cv2.COLOR_BGR2RGB)
 
 # load tarkov item information and icons
 eft_items_grid_icons_directory = './grid_icons/'
@@ -64,25 +69,38 @@ def template_matching(image, template, threshold=0.8):
     points = zip(*loc[::-1])
     return points
 
-def check_for_active_captcha(screenshot):
-    points = template_matching(screenshot, captcha_title_image, threshold=0.8)
+def check_for_template(screenshot, template):
+    points = template_matching(screenshot, template, threshold=0.8)
     points = non_maximum_suppression_points(points, ITEM_SLOT_PIXEL_SIZE)
 
     if len(points) == 0:
         return False, None
     if len(points) > 1:
-        print(f"WARNING: there is multiple locations for the captcha window!\n"
+        print(f"WARNING: there is multiple locations for the given template!\n"
               f"         {points=}\n"
               f"         Using the first point.")
     return True, points[0]
 
 def update():
-    global captcha_was_active
+    global captcha_was_active, menu_was_active, update_period_in_ms
 
     # locate captcha window and item name
     screenshot = screenshot_taker.take_screenshot()
 
-    captcha_is_active, point = check_for_active_captcha(screenshot)
+    # check if in main menu
+    menu_is_active, point = check_for_template(screenshot, tarkov_menu_image)
+    if menu_was_active != menu_is_active:
+        if menu_is_active:
+            print(f"We are in the main menu. Updating every {UPDATE_PERIOD_IN_MENU_IN_MS}ms")
+            update_period_in_ms = UPDATE_PERIOD_IN_MENU_IN_MS
+        else:
+            print(f"We are in a raid. Updating every {UPDATE_PERIOD_IN_RAID_IN_MS}ms")
+            update_period_in_ms = UPDATE_PERIOD_IN_RAID_IN_MS
+        menu_was_active = menu_is_active
+        overlay.UPDATE_PERIOD_IN_MS = update_period_in_ms
+
+    # check if captcha is active
+    captcha_is_active, point = check_for_template(screenshot, captcha_title_image)
     if captcha_was_active and not captcha_is_active:
         overlay.remove_rectangles()
 
